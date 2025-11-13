@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Network Scanner - Background Location Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            position: relative;
+            border: 12px solid #1a1a1a;
+        }
+        
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 100;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+            padding: 40px 20px 20px;
+            overflow-y: auto;
+        }
+        
+        .app-header {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+        
+        .app-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .signal-strength {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .signal-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+        
+        .signal-unit {
+            font-size: 24px;
+            color: #fff;
+            margin-left: 10px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            opacity: 0.7;
+        }
+        
+        .info-value {
+            font-weight: 600;
+        }
+        
+        .scan-button {
+            background: #4ade80;
+            color: #000;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        
+        .scan-button:hover {
+            background: #22c55e;
+        }
+        
+        .scan-button.scanning {
+            background: #ef4444;
+        }
+        
+        .timer {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #4ade80;
+            margin: 20px 0;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #4ade80;
+            color: #000;
+        }
+        
+        .status-badge.background {
+            background: #fbbf24;
+        }
+        
+        .animation-text {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #4ade80;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 0 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .instruction {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #4ade80;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 1000;
+            border: 2px solid #4ade80;
+        }
+    </style>
+</head>
+<body>
+    <div class="instruction" id="instruction">
+        🎥 Click START to begin demo
+    </div>
+    
+    <div class="phone-frame">
+        <div class="notch"></div>
+        <div class="screen" id="screen">
+            <div class="app-header">
+                <div class="app-title">Mobile Network Scanner</div>
+                <div class="app-subtitle">Real-time cellular monitoring</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    Signal Strength 
+                    <span class="status-badge" id="status">Active</span>
+                </div>
+                <div class="signal-strength floating">
+                    <span class="signal-value" id="signal">-72</span>
+                    <span class="signal-unit">dBm</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Network Type</span>
+                    <span class="info-value" id="networkType">5G</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cell ID</span>
+                    <span class="info-value" id="cellId">12345678</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Frequency</span>
+                    <span class="info-value" id="frequency">2600 MHz</span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">8-Hour Continuous Scan</div>
+                <div class="timer" id="timer">00:00:00</div>
+                <button class="scan-button" id="scanButton" onclick="toggleScan()">
+                    Start 8-Hour Scan
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Location</div>
+                <div class="info-row">
+                    <span class="info-label">Latitude</span>
+                    <span class="info-value" id="lat">64.1466</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Longitude</span>
+                    <span class="info-value" id="lon">-21.9426</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Samples Collected</span>
+                    <span class="info-value" id="samples">0</span>
+                </div>
+            </div>
+            
+            <div class="animation-text" id="animText" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let isScanning = false;
+        let seconds = 0;
+        let interval = null;
+        let signalInterval = null;
+        let demoSequence = 0;
+        
+        const instructions = [
+            "🎥 Click START to begin demo",
+            "📱 Starting 8-hour background scan...",
+            "✅ Scan running - collecting data",
+            "🔄 Minimizing app to background...",
+            "⏰ App continues scanning in background",
+            "📊 Data collection continues...",
+            "📱 Opening app again...",
+            "✅ All data preserved - scan still running!",
+            "🎉 Demo complete - loop restarting"
+        ];
+        
+        function updateInstruction(index) {
+            document.getElementById('instruction').textContent = instructions[index];
+        }
+        
+        function updateTimer() {
+            seconds++;
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            document.getElementById('timer').textContent = 
+                `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        
+        function updateSignal() {
+            const signal = -Math.floor(Math.random() * 30) - 60;
+            document.getElementById('signal').textContent = signal;
+            
+            const samples = parseInt(document.getElementById('samples').textContent);
+            document.getElementById('samples').textContent = samples + 1;
+            
+            // Slight location variation
+            const baseLat = 64.1466;
+            const baseLon = -21.9426;
+            const lat = (baseLat + (Math.random() - 0.5) * 0.01).toFixed(4);
+            const lon = (baseLon + (Math.random() - 0.5) * 0.01).toFixed(4);
+            document.getElementById('lat').textContent = lat;
+            document.getElementById('lon').textContent = lon;
+        }
+        
+        function toggleScan() {
+            if (!isScanning) {
+                startDemo();
+            } else {
+                stopScan();
+            }
+        }
+        
+        function startDemo() {
+            isScanning = true;
+            demoSequence = 1;
+            updateInstruction(1);
+            
+            setTimeout(() => {
+                updateInstruction(2);
+                document.getElementById('scanButton').textContent = 'Stop Scan';
+                document.getElementById('scanButton').classList.add('scanning');
+                document.getElementById('status').textContent = 'Scanning';
+                
+                interval = setInterval(updateTimer, 1000);
+                signalInterval = setInterval(updateSignal, 2000);
+                
+                // Simulate minimizing to background
+                setTimeout(() => {
+                    updateInstruction(3);
+                    document.getElementById('screen').style.opacity = '0.3';
+                    document.getElementById('status').textContent = 'Background';
+                    document.getElementById('status').classList.add('background');
+                    
+                    setTimeout(() => {
+                        updateInstruction(4);
+                        
+                        setTimeout(() => {
+                            updateInstruction(5);
+                            
+                            // Show app reopening
+                            setTimeout(() => {
+                                updateInstruction(6);
+                                document.getElementById('screen').style.opacity = '1';
+                                document.getElementById('status').textContent = 'Scanning';
+                                document.getElementById('status').classList.remove('background');
+                                
+                                setTimeout(() => {
+                                    updateInstruction(7);
+                                    
+                                    setTimeout(() => {
+                                        updateInstruction(8);
+                                        
+                                        // Reset demo
+                                        setTimeout(() => {
+                                            stopScan();
+                                            updateInstruction(0);
+                                        }, 3000);
+                                    }, 3000);
+                                }, 3000);
+                            }, 3000);
+                        }, 3000);
+                    }, 3000);
+                }, 3000);
+            }, 1000);
+        }
+        
+        function stopScan() {
+            isScanning = false;
+            clearInterval(interval);
+            clearInterval(signalInterval);
+            seconds = 0;
+            document.getElementById('timer').textContent = '00:00:00';
+            document.getElementById('scanButton').textContent = 'Start 8-Hour Scan';
+            document.getElementById('scanButton').classList.remove('scanning');
+            document.getElementById('status').textContent = 'Active';
+            document.getElementById('status').classList.remove('background');
+            document.getElementById('samples').textContent = '0';
+            document.getElementById('screen').style.opacity = '1';
+        }
+        
+        // Auto-start demo after 2 seconds
+        setTimeout(() => {
+            updateInstruction(0);
+        }, 500);
+    </script>
+</body>
+</html>
